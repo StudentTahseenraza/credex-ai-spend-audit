@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { SavingsHero } from './SavingsHero';
 import { ToolCard } from './ToolCard';
 import { AISummary } from './AISummary';
+import { SavingsChart } from './SavingsChart';
 import { LeadCaptureModal } from './LeadCaptureModal';
-import { Button } from '../ui/button';
+import { Button } from '../../components/ui/button';
 import { Share2, FileText } from 'lucide-react';
 
 interface ToolRecommendation {
@@ -43,6 +44,17 @@ export function ResultsDashboard({ audit }: ResultsDashboardProps) {
     alert('Link copied! Share your audit results.');
   };
 
+  // Calculate data for charts
+  const totalCurrentSpend = audit.tools.reduce((sum, t) => sum + t.monthlySpend, 0);
+  const totalRecommendedSpend = audit.tools.reduce((sum, t) => sum + (t.monthlySpend - t.recommendation.monthlySavings), 0);
+  
+  const chartData = audit.tools.map(tool => ({
+    name: tool.name,
+    currentSpend: tool.monthlySpend,
+    recommendedSpend: tool.monthlySpend - tool.recommendation.monthlySavings,
+    monthlySavings: tool.recommendation.monthlySavings,
+  }));
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Hero savings section */}
@@ -50,6 +62,15 @@ export function ResultsDashboard({ audit }: ResultsDashboardProps) {
         monthlySavings={audit.totalMonthlySavings}
         annualSavings={audit.totalAnnualSavings}
       />
+      
+      {/* Charts Section - NEW */}
+      {(audit.totalMonthlySavings > 0 || chartData.length > 0) && (
+        <SavingsChart 
+          tools={chartData}
+          totalCurrentSpend={totalCurrentSpend}
+          totalRecommendedSpend={totalRecommendedSpend}
+        />
+      )}
       
       {/* Per-tool breakdown */}
       <div>
