@@ -20,7 +20,7 @@ export function SavingsHero({ monthlySavings, annualSavings }: SavingsHeroProps)
           Your AI Stack Is Optimized
         </h1>
         <p className="text-xl text-gray-600 mt-3">
-          You're spending efficiently. No major changes needed.
+          You&apos;re spending efficiently. No major changes needed.
         </p>
       </div>
     );
@@ -35,7 +35,7 @@ export function SavingsHero({ monthlySavings, annualSavings }: SavingsHeroProps)
         Save ${monthlySavings}/month
       </h1>
       <p className="text-xl text-gray-600 mt-2">
-        That's <span className="font-bold text-green-600">${annualSavings}/year</span> in potential savings
+        That&apos;s <span className="font-bold text-green-600">${annualSavings}/year</span> in potential savings
       </p>
       <p className="text-sm text-gray-500 mt-4">
         Based on your team of {monthlySavings > 0 ? 'actual' : ''} usage patterns

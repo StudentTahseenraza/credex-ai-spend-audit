@@ -114,7 +114,11 @@ export default function AuditResultPage() {
   }, [id]);
 
   useEffect(() => {
-    fetchAudit();
+    const loadAudit = async () => {
+      await fetchAudit();
+    };
+
+    void loadAudit();
   }, [fetchAudit]);
 
   const handleShare = async () => {
@@ -332,7 +336,7 @@ export default function AuditResultPage() {
                 <div>
                   <h3 className="font-semibold text-purple-900 mb-1">High Savings Detected!</h3>
                   <p className="text-sm text-purple-700">
-                    You're saving over $500/month with our recommendations.
+                    You&apos;re saving over $500/month with our recommendations.
                     A Credex specialist will reach out within 24 hours to help you capture
                     even more through discounted AI credits (additional 20-30% savings).
                   </p>

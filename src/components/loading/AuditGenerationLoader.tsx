@@ -85,23 +85,29 @@ export function AuditGenerationLoader({ onComplete }: AuditGenerationLoaderProps
   const [randomNumbers, setRandomNumbers] = useState({ subscriptions: 0, latency: 0 });
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; duration: number; delay: number }>>([]);
 
-  // Generate random numbers only on client side after mount
   useEffect(() => {
+  const initializeLoader = async () => {
     setRandomNumbers({
       subscriptions: Math.floor(Math.random() * 1000),
-      latency: Math.floor(Math.random() * 50 + 20)
+      latency: Math.floor(Math.random() * 50 + 20),
     });
 
-    // Generate static particles with fixed positions
-    const generatedParticles = Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100, // percentage-based for responsiveness
-      y: Math.random() * 100,
-      duration: Math.random() * 3 + 2,
-      delay: Math.random() * 5,
-    }));
+    const generatedParticles = Array.from(
+      { length: 20 },
+      (_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        duration: Math.random() * 3 + 2,
+        delay: Math.random() * 5,
+      })
+    );
+
     setParticles(generatedParticles);
-  }, []);
+  };
+
+  void initializeLoader();
+}, []);
 
   useEffect(() => {
     const stageDuration = 2000;

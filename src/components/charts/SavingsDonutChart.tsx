@@ -23,22 +23,22 @@ interface SavingsDonutChartProps {
 }
 
 interface ActiveShapeProps {
-  cx: number;
-  cy: number;
-  innerRadius: number;
-  outerRadius: number;
-  startAngle: number;
-  endAngle: number;
-  fill: string;
-  payload: ChartDataItem;
-  percent: number;
-  value: number;
+  cx?: number;
+  cy?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  startAngle?: number;
+  endAngle?: number;
+  fill?: string;
+  payload?: ChartDataItem;
+  percent?: number;
+  value?: number;
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec489a', '#06b6d4'];
 
 export function SavingsDonutChart({ tools, totalSavings, className }: SavingsDonutChartProps) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [_, setActiveIndex] = useState<number | null>(null);
   
   const data: ChartDataItem[] = tools
     .filter(t => t.savings > 0)
@@ -57,8 +57,20 @@ export function SavingsDonutChart({ tools, totalSavings, className }: SavingsDon
   };
 
   const renderActiveShape = (props: ActiveShapeProps) => {
-    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
-    return (
+const {
+  cx = 0,
+  cy = 0,
+  innerRadius = 0,
+  outerRadius = 0,
+  startAngle = 0,
+  endAngle = 0,
+  fill = '#3b82f6',
+  payload,
+  percent = 0,
+  value = 0,
+} = props;
+
+return (
       <g>
         <Sector
           cx={cx}
@@ -70,7 +82,7 @@ export function SavingsDonutChart({ tools, totalSavings, className }: SavingsDon
           fill={fill}
         />
         <text x={cx} y={cy - 10} dy={8} textAnchor="middle" fill="#1f2937" className="text-sm font-semibold">
-          {payload.name}
+          {payload?.name}
         </text>
         <text x={cx} y={cy + 10} dy={8} textAnchor="middle" fill="#6b7280" className="text-xs">
           ${value}/mo ({(percent * 100).toFixed(0)}%)
@@ -118,7 +130,6 @@ export function SavingsDonutChart({ tools, totalSavings, className }: SavingsDon
               outerRadius={80}
               paddingAngle={3}
               dataKey="value"
-              activeIndex={activeIndex !== null ? activeIndex : undefined}
               activeShape={renderActiveShape}
               onMouseEnter={onPieEnter}
               onMouseLeave={onPieLeave}

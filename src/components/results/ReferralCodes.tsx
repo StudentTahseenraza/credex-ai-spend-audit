@@ -15,8 +15,9 @@ export function ReferralCodes({ auditId }: ReferralCodesProps) {
   const [referralCode, setReferralCode] = useState('');
 
   useEffect(() => {
-    // Generate or get existing referral code
+  const loadReferralCode = async () => {
     const stored = localStorage.getItem(`referral_${auditId}`);
+
     if (stored) {
       setReferralCode(stored);
     } else {
@@ -24,7 +25,10 @@ export function ReferralCodes({ auditId }: ReferralCodesProps) {
       localStorage.setItem(`referral_${auditId}`, newCode);
       setReferralCode(newCode);
     }
-  }, [auditId]);
+  };
+
+  void loadReferralCode();
+}, [auditId]);
 
   const referralLink = `${window.location.origin}?ref=${referralCode}`;
 

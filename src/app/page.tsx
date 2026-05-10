@@ -21,11 +21,11 @@ export default function Home() {
               Find Hidden Savings in Your AI Stack
             </h1>
             <p className="text-xl md:text-2xl text-blue-100 mb-8">
-              Most startups overpay by 30%+ on AI tools. We'll show you exactly where.
+              Most startups overpay by 30%+ on AI tools. We&apos;ll show you exactly where.
             </p>
             <div className="flex gap-4 justify-center">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 onClick={scrollToForm}
                 className="bg-white text-blue-600 hover:bg-gray-100"
               >
@@ -38,7 +38,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      
+
       {/* Trust bar */}
       <section className="border-b bg-gray-50">
         <div className="container mx-auto px-4 py-4">
@@ -47,14 +47,14 @@ export default function Home() {
           </p>
         </div>
       </section>
-      
+
       {/* Form Section - Add ref here */}
       <section ref={formRef} className="py-16">
         <div className="container mx-auto px-4">
           <MultiStepForm />
         </div>
       </section>
-      
+
       {/* FAQ Section */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4 max-w-3xl">

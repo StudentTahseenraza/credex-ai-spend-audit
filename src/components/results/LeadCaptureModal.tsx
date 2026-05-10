@@ -20,7 +20,7 @@ export function LeadCaptureModal({ auditId, savingsAmount, onClose }: LeadCaptur
 
   const handleSubmit = async () => {
     if (!email) return;
-    
+
     setIsSubmitting(true);
     try {
       await fetch('/api/lead', {
@@ -41,7 +41,9 @@ export function LeadCaptureModal({ auditId, savingsAmount, onClose }: LeadCaptur
     return (
       <Card className="p-6 text-center">
         <h3 className="text-lg font-semibold mb-2">✓ Saved!</h3>
-        <p className="text-gray-600">We've sent your audit report to {email}</p>
+        <p className="text-gray-600">
+          We&apos;ve sent your audit report to {email}
+        </p>
       </Card>
     );
   }
@@ -54,14 +56,14 @@ export function LeadCaptureModal({ auditId, savingsAmount, onClose }: LeadCaptur
       {showCredexPrompt && (
         <div className="mb-4 p-3 bg-purple-100 rounded-lg">
           <p className="text-purple-800 font-medium">
-            🎉 You're saving over $500/month!
+            🎉 You&apos;re saving over $500/month!
           </p>
           <p className="text-sm text-purple-700 mt-1">
             A Credex specialist will reach out to help you capture even more savings through discounted AI credits.
           </p>
         </div>
       )}
-      
+
       <div className="space-y-3">
         <Input
           type="email"
@@ -85,7 +87,7 @@ export function LeadCaptureModal({ auditId, savingsAmount, onClose }: LeadCaptur
           {isSubmitting ? 'Saving...' : 'Get Full Report →'}
         </Button>
         <p className="text-xs text-gray-500 text-center">
-          We'll email you the full audit. No spam.
+          We&apos;ll email you the full audit. No spam.
         </p>
       </div>
     </Card>

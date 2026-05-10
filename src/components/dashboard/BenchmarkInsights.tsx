@@ -52,12 +52,12 @@ export function BenchmarkInsights({ teamSize, totalMonthlySpend, useCase, classN
   const percentageDifference = ((spendPerDev - benchmark.perDeveloperAvg) / benchmark.perDeveloperAvg) * 100;
   const isAboveAverage = percentageDifference > 0;
   
-  const getPositionText = () => {
-    if (spendPerDev <= benchmark.perDeveloperTop) return 'top performer';
-    if (spendPerDev <= benchmark.perDeveloperAvg) return 'above average';
-    if (spendPerDev <= benchmark.perDeveloperBottom) return 'below average';
-    return 'significantly over budget';
-  };
+  // const getPositionText = () => {
+  //   if (spendPerDev <= benchmark.perDeveloperTop) return 'top performer';
+  //   if (spendPerDev <= benchmark.perDeveloperAvg) return 'above average';
+  //   if (spendPerDev <= benchmark.perDeveloperBottom) return 'below average';
+  //   return 'significantly over budget';
+  // };
   
   const getSavingsPotential = () => {
     if (spendPerDev > benchmark.perDeveloperAvg) {
