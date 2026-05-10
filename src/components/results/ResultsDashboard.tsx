@@ -47,7 +47,7 @@ export function ResultsDashboard({ audit }: ResultsDashboardProps) {
   // Calculate data for charts
   const totalCurrentSpend = audit.tools.reduce((sum, t) => sum + t.monthlySpend, 0);
   const totalRecommendedSpend = audit.tools.reduce((sum, t) => sum + (t.monthlySpend - t.recommendation.monthlySavings), 0);
-  
+
   const chartData = audit.tools.map(tool => ({
     name: tool.name,
     currentSpend: tool.monthlySpend,
@@ -58,20 +58,20 @@ export function ResultsDashboard({ audit }: ResultsDashboardProps) {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Hero savings section */}
-      <SavingsHero 
+      <SavingsHero
         monthlySavings={audit.totalMonthlySavings}
         annualSavings={audit.totalAnnualSavings}
       />
-      
+
       {/* Charts Section - NEW */}
       {(audit.totalMonthlySavings > 0 || chartData.length > 0) && (
-        <SavingsChart 
+        <SavingsChart
           tools={chartData}
           totalCurrentSpend={totalCurrentSpend}
           totalRecommendedSpend={totalRecommendedSpend}
         />
       )}
-      
+
       {/* Per-tool breakdown */}
       <div>
         <h2 className="text-2xl font-semibold mb-4">Per-Tool Analysis</h2>
@@ -81,16 +81,16 @@ export function ResultsDashboard({ audit }: ResultsDashboardProps) {
               key={idx}
               name={tool.name}
               currentPlan={tool.plan}
-              currentSpend={tool.monthlySpend}
+              currentSpend={tool.monthlySpend}  // Make sure this has value
               recommendation={tool.recommendation}
             />
           ))}
         </div>
       </div>
-      
+
       {/* AI Summary */}
       {audit.aiSummary && <AISummary summary={audit.aiSummary} />}
-      
+
       {/* Action buttons */}
       <div className="flex gap-3 pt-4">
         <Button variant="outline" onClick={handleShare} className="flex-1">
@@ -102,7 +102,7 @@ export function ResultsDashboard({ audit }: ResultsDashboardProps) {
           Get Full Report
         </Button>
       </div>
-      
+
       {/* Lead capture modal */}
       {showLeadCapture && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -113,7 +113,7 @@ export function ResultsDashboard({ audit }: ResultsDashboardProps) {
             >
               ✕ Close
             </button>
-            <LeadCaptureModal 
+            <LeadCaptureModal
               auditId={audit.shareableId}
               savingsAmount={audit.totalMonthlySavings}
               onClose={() => setShowLeadCapture(false)}
@@ -121,7 +121,7 @@ export function ResultsDashboard({ audit }: ResultsDashboardProps) {
           </div>
         </div>
       )}
-      
+
       {/* Footer note */}
       {audit.totalMonthlySavings > 500 && (
         <div className="p-4 bg-purple-100 rounded-lg text-center">

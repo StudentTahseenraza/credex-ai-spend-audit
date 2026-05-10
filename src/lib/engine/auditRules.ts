@@ -17,52 +17,39 @@ export interface AuditResult {
   reason: string;
 }
 
-// Check if user is overpaying and find the RIGHT plan (not the cheapest)
+// In checkPlanOverspending function
 function checkPlanOverspending(
   currentPlan: string,
   seats: number,
+  monthlySpend: number,  // Add this parameter
   tiers: PricingTier[]
 ): { suggestedPlan: string; monthlySavings: number; reason: string } | null {
-  // Find current tier
   const currentTier = tiers.find((t) => t.name.toLowerCase() === currentPlan.toLowerCase());
   if (!currentTier) return null;
 
-  // Find tiers that are cheaper than current AND appropriate for seat count
-  // But NOT free/Hobby unless the user is actually on a paid plan that's overkill
+  // Calculate what they SHOULD be paying
+  const correctPricePerSeat = currentTier.monthlyPricePerSeat;
+  const actualPricePerSeat = monthlySpend / seats;
+  
+  // If they're already paying the correct amount, no savings
+  if (Math.abs(actualPricePerSeat - correctPricePerSeat) < 1) {
+    return null;
+  }
+
+  // Find appropriate tier
   const appropriateTiers = tiers
-    .filter((t) => t.monthlyPricePerSeat < currentTier.monthlyPricePerSeat)
-    .filter((t) => {
-      // Check seat requirements
-      if (t.minSeats && seats < t.minSeats) return false;
-      if (t.maxSeats && seats > t.maxSeats) return false;
-      
-      // If current plan is paid (not free), don't recommend free unless it's truly the only option
-      // But for business logic, we want to avoid recommending free for professional use
-      if (currentTier.monthlyPricePerSeat > 0 && t.monthlyPricePerSeat === 0) {
-        // Only allow free if the free tier actually has reasonable features
-        // For most tools, free tier is too limited for teams
-        return false;
-      }
-      
-      return true;
-    });
+    .filter((t) => t.monthlyPricePerSeat < actualPricePerSeat)
+    .filter((t) => !t.minSeats || seats >= t.minSeats);
 
   if (appropriateTiers.length === 0) return null;
 
-  // Sort by price (cheapest first) BUT we want the most expensive of the cheap options
-  // This gives the right-fit plan, not the absolute cheapest
-  const sortedTiers = appropriateTiers.sort((a, b) => b.monthlyPricePerSeat - a.monthlyPricePerSeat);
-  const bestTier = sortedTiers[0];
-  
-  const monthlySavings = (currentTier.monthlyPricePerSeat - bestTier.monthlyPricePerSeat) * seats;
-  
-  // Only suggest if savings are meaningful (> $10 total or > 20% savings)
-  if (monthlySavings < 10) return null;
+  const bestTier = appropriateTiers.sort((a, b) => b.monthlyPricePerSeat - a.monthlyPricePerSeat)[0];
+  const monthlySavings = (actualPricePerSeat - bestTier.monthlyPricePerSeat) * seats;
 
   return {
     suggestedPlan: bestTier.name,
-    monthlySavings,
-    reason: `${currentPlan} costs $${currentTier.monthlyPricePerSeat}/seat. ${bestTier.name} at $${bestTier.monthlyPricePerSeat}/seat is more appropriate for your team size of ${seats}.`,
+    monthlySavings: Math.max(0, monthlySavings),
+    reason: `${currentPlan} costs $${actualPricePerSeat.toFixed(2)}/seat (based on your $${monthlySpend} total). ${bestTier.name} at $${bestTier.monthlyPricePerSeat}/seat is more appropriate.`,
   };
 }
 

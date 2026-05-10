@@ -16,18 +16,21 @@ export async function GET(
     return NextResponse.json({ error: 'Audit not found' }, { status: 404 });
   }
 
-  // Return public version (no email/company/role/IP)
+  // Return with ALL fields including monthlySpend
   return NextResponse.json({
     shareableId: audit.shareableId,
     createdAt: audit.createdAt,
     teamSize: audit.teamSize,
     useCase: audit.useCase,
-    tools: audit.tools.map((t: any) => ({
-      name: t.name,
-      recommendation: t.recommendation,
-    })),
     totalMonthlySavings: audit.totalMonthlySavings,
     totalAnnualSavings: audit.totalAnnualSavings,
     aiSummary: audit.aiSummary,
+    tools: audit.tools.map((t: any) => ({
+      name: t.name,
+      plan: t.plan,
+      monthlySpend: t.monthlySpend,  // CRITICAL: Include this
+      seats: t.seats,
+      recommendation: t.recommendation,
+    })),
   });
 }

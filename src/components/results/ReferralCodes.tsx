@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent } from '../../components/ui/card';
+import { useState, useEffect } from 'react';
+import { Gift, Copy, Share2, Check } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Gift, Copy, Share2, Check } from 'lucide-react';
+import { Card, CardContent } from '../../components/ui/card';
 
 interface ReferralCodesProps {
   auditId: string;
@@ -12,14 +12,19 @@ interface ReferralCodesProps {
 
 export function ReferralCodes({ auditId }: ReferralCodesProps) {
   const [copied, setCopied] = useState(false);
-  const [referralCode] = useState(() => {
+  const [referralCode, setReferralCode] = useState('');
+
+  useEffect(() => {
     // Generate or get existing referral code
     const stored = localStorage.getItem(`referral_${auditId}`);
-    if (stored) return stored;
-    const newCode = `CREX${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    localStorage.setItem(`referral_${auditId}`, newCode);
-    return newCode;
-  });
+    if (stored) {
+      setReferralCode(stored);
+    } else {
+      const newCode = `CREX${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      localStorage.setItem(`referral_${auditId}`, newCode);
+      setReferralCode(newCode);
+    }
+  }, [auditId]);
 
   const referralLink = `${window.location.origin}?ref=${referralCode}`;
 
@@ -28,6 +33,8 @@ export function ReferralCodes({ auditId }: ReferralCodesProps) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (!referralCode) return null;
 
   return (
     <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
@@ -59,8 +66,7 @@ export function ReferralCodes({ auditId }: ReferralCodesProps) {
           </div>
           
           <Button 
-            variant="default"
-            className="w-full bg-purple-600 hover:bg-purple-700"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
             onClick={() => copyToClipboard(referralLink)}
           >
             <Share2 className="h-4 w-4 mr-2" />

@@ -79,28 +79,45 @@ export function MultiStepForm() {
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
+  setIsSubmitting(true);
+  
+  // Debug: Check what we're sending
+  console.log('Submitting form data:', formData);
+  
+  try {
+    const response = await fetch('/api/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tools: formData.tools.map(tool => ({
+          name: tool.name,
+          plan: tool.plan,
+          monthlySpend: Number(tool.monthlySpend),  // Ensure it's a number
+          seats: Number(tool.seats)                 // Ensure it's a number
+        })),
+        teamSize: Number(formData.teamSize),
+        useCase: formData.useCase,
+        email: formData.email,
+        company: formData.company,
+        role: formData.role,
+      }),
+    });
     
-    try {
-      const response = await fetch('/api/audit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Audit failed');
-      }
-      
-      const result = await response.json();
-      router.push(`/audit/${result.shareableId}`);
-    } catch (error) {
-      console.error('Submission error:', error);
-      alert('Something went wrong. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    const result = await response.json();
+    console.log('API response:', result);  // Debug: Check what API returns
+    
+    if (!response.ok) throw new Error(result.error);
+    
+    // Store for results page
+    localStorage.setItem('lastAuditResult', JSON.stringify(result));
+    router.push(`/audit/${result.shareableId}`);
+  } catch (error) {
+    console.error('Submission error:', error);
+    alert('Something went wrong. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const totalMonthlySpend = formData.tools.reduce((sum, t) => sum + t.monthlySpend, 0);
 

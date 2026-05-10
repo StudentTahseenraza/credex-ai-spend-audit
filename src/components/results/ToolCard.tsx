@@ -32,10 +32,15 @@ const actionLabels: Record<string, string> = {
 export function ToolCard({ name, currentPlan, currentSpend, recommendation }: ToolCardProps) {
   const hasSavings = recommendation.monthlySavings > 0;
   const actionKey = recommendation.action as keyof typeof actionLabels;
+  
+  const displayName = name === 'github-copilot' ? 'GitHub Copilot' : 
+                      name === 'chatgpt' ? 'ChatGPT' :
+                      name === 'claude' ? 'Claude' :
+                      name === 'cursor' ? 'Cursor' :
+                      name.charAt(0).toUpperCase() + name.slice(1);
 
-  const displayName = name === 'github-copilot' ? 'GitHub Copilot' :
-    name === 'chatgpt' ? 'ChatGPT' :
-      name.charAt(0).toUpperCase() + name.slice(1);
+  // Debug log
+  console.log(`${displayName} - Current Spend: $${currentSpend}, Plan: ${currentPlan}`);
 
   return (
     <div className={`rounded-xl border p-4 transition-all ${hasSavings ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-white'}`}>
@@ -43,14 +48,14 @@ export function ToolCard({ name, currentPlan, currentSpend, recommendation }: To
         <div>
           <h3 className="font-semibold text-lg">{displayName}</h3>
           <p className="text-sm text-gray-600">
-            Current: {currentPlan} · ${currentSpend}/month
+            Current: {currentPlan} · ${currentSpend > 0 ? currentSpend : '0'}/month
           </p>
         </div>
         <div className={`flex items-center gap-2 px-2 py-1 rounded text-sm font-medium ${actionColors[actionKey] || 'bg-gray-100'}`}>
           <span>{actionLabels[actionKey] || 'Analyzed'}</span>
         </div>
       </div>
-
+      
       {hasSavings && (
         <div className="mt-3 p-2 bg-green-100 rounded-lg">
           <p className="text-sm text-green-800">
@@ -61,7 +66,7 @@ export function ToolCard({ name, currentPlan, currentSpend, recommendation }: To
           <p className="text-xs text-green-700 mt-1">{recommendation.reason}</p>
         </div>
       )}
-
+      
       {!hasSavings && recommendation.action === 'stay' && (
         <div className="mt-3 p-2 bg-gray-100 rounded-lg">
           <p className="text-sm text-gray-600">{recommendation.reason}</p>
