@@ -17,55 +17,62 @@ export interface AuditResult {
   reason: string;
 }
 
-// In checkPlanOverspending function
+// Check if user is overpaying and find the RIGHT plan
 function checkPlanOverspending(
   currentPlan: string,
   seats: number,
-  monthlySpend: number,  // Add this parameter
-  tiers: PricingTier[]
+  monthlySpend: number,
+  tiers: PricingTier[] | undefined
 ): { suggestedPlan: string; monthlySavings: number; reason: string } | null {
-  const currentTier = tiers.find((t) => t.name.toLowerCase() === currentPlan.toLowerCase());
-  if (!currentTier) return null;
-
-  // Calculate what they SHOULD be paying
-  const correctPricePerSeat = currentTier.monthlyPricePerSeat;
-  const actualPricePerSeat = monthlySpend / seats;
-  
-  // If they're already paying the correct amount, no savings
-  if (Math.abs(actualPricePerSeat - correctPricePerSeat) < 1) {
+  // Safety check
+  if (!tiers || tiers.length === 0) {
     return null;
   }
 
-  // Find appropriate tier
-  const appropriateTiers = tiers
-    .filter((t) => t.monthlyPricePerSeat < actualPricePerSeat)
-    .filter((t) => !t.minSeats || seats >= t.minSeats);
-
-  if (appropriateTiers.length === 0) return null;
-
-  const bestTier = appropriateTiers.sort((a, b) => b.monthlyPricePerSeat - a.monthlyPricePerSeat)[0];
-  const monthlySavings = (actualPricePerSeat - bestTier.monthlyPricePerSeat) * seats;
-
-  return {
-    suggestedPlan: bestTier.name,
-    monthlySavings: Math.max(0, monthlySavings),
-    reason: `${currentPlan} costs $${actualPricePerSeat.toFixed(2)}/seat (based on your $${monthlySpend} total). ${bestTier.name} at $${bestTier.monthlyPricePerSeat}/seat is more appropriate.`,
-  };
-}
-
-// Special case: Check if user is on a paid plan but could use a lower paid plan
-function checkSpecificDowngradePath(
-  currentPlan: string,
-  seats: number,
-  tiers: PricingTier[]
-): { suggestedPlan: string; monthlySavings: number; reason: string } | null {
   const currentTier = tiers.find((t) => t.name.toLowerCase() === currentPlan.toLowerCase());
   if (!currentTier) return null;
 
-  // Define logical downgrade paths
+  // Calculate actual price per seat
+  const actualPricePerSeat = monthlySpend / seats;
+  
+  // Find cheaper tiers that fit seat count
+  const cheaperTiers = tiers
+    .filter((t) => t.monthlyPricePerSeat < actualPricePerSeat)
+    .filter((t) => {
+      if (t.minSeats && seats < t.minSeats) return false;
+      if (t.maxSeats && seats > t.maxSeats) return false;
+      return true;
+    });
+
+  if (cheaperTiers.length === 0) return null;
+
+  // Get the most expensive of the cheaper options (best fit)
+  const bestTier = cheaperTiers.sort((a, b) => b.monthlyPricePerSeat - a.monthlyPricePerSeat)[0];
+  const monthlySavings = (actualPricePerSeat - bestTier.monthlyPricePerSeat) * seats;
+
+  if (monthlySavings <= 0) return null;
+
+  return {
+    suggestedPlan: bestTier.name,
+    monthlySavings,
+    reason: `${currentPlan} costs $${actualPricePerSeat.toFixed(2)}/seat. ${bestTier.name} at $${bestTier.monthlyPricePerSeat}/seat saves you $${monthlySavings}/month.`,
+  };
+}
+
+// Check logical downgrade paths
+function checkSpecificDowngradePath(
+  currentPlan: string,
+  seats: number,
+  tiers: PricingTier[] | undefined
+): { suggestedPlan: string; monthlySavings: number; reason: string } | null {
+  if (!tiers || tiers.length === 0) return null;
+
+  const currentTier = tiers.find((t) => t.name.toLowerCase() === currentPlan.toLowerCase());
+  if (!currentTier) return null;
+
   const downgradePaths: Record<string, string[]> = {
-    'Enterprise': ['Business', 'Pro', 'Plus'],
-    'Business': ['Pro', 'Plus'],
+    'Enterprise': ['Business', 'Pro'],
+    'Business': ['Pro'],
     'Team': ['Plus', 'Pro'],
     'Max': ['Pro'],
     'Ultra': ['Pro'],
@@ -77,7 +84,6 @@ function checkSpecificDowngradePath(
     const targetTier = tiers.find((t) => t.name === targetPlan);
     if (!targetTier) continue;
     
-    // Check seat requirements for target plan
     if (targetTier.minSeats && seats < targetTier.minSeats) continue;
     if (targetTier.maxSeats && seats > targetTier.maxSeats) continue;
     
@@ -87,7 +93,7 @@ function checkSpecificDowngradePath(
       return {
         suggestedPlan: targetPlan,
         monthlySavings,
-        reason: `${currentPlan} is overkill for ${seats} ${seats === 1 ? 'user' : 'users'}. ${targetPlan} provides the features you need at $${targetTier.monthlyPricePerSeat}/seat.`,
+        reason: `${currentPlan} is overkill for ${seats} user${seats !== 1 ? 's' : ''}. ${targetPlan} provides what you need at $${targetTier.monthlyPricePerSeat}/seat.`,
       };
     }
   }
@@ -99,8 +105,10 @@ function checkSpecificDowngradePath(
 function checkEnterpriseOverkill(
   currentPlan: string,
   seats: number,
-  tiers: PricingTier[]
+  tiers: PricingTier[] | undefined
 ): { suggestedPlan: string; monthlySavings: number; reason: string } | null {
+  if (!tiers || tiers.length === 0) return null;
+
   const isEnterprise = currentPlan.toLowerCase().includes('enterprise');
   if (!isEnterprise) return null;
 
@@ -108,7 +116,6 @@ function checkEnterpriseOverkill(
   const businessTier = tiers.find((t) => t.name.toLowerCase() === 'business');
   const proTier = tiers.find((t) => t.name.toLowerCase() === 'pro');
 
-  // If seats are below enterprise minimum, suggest business or pro
   if (enterpriseTier?.minSeats && seats < enterpriseTier.minSeats) {
     const targetTier = businessTier || proTier;
     if (targetTier) {
@@ -124,7 +131,7 @@ function checkEnterpriseOverkill(
   return null;
 }
 
-// Check if user should switch to alternative tool
+// Check alternative tools
 function checkAlternativeTool(
   toolName: string,
   currentPlan: string,
@@ -132,27 +139,29 @@ function checkAlternativeTool(
   monthlySpend: number,
   useCase: string
 ): AuditResult | null {
+  // Only for coding use cases
+  if (useCase !== 'coding') return null;
+  
   const tool = getToolPricing(toolName);
   if (!tool?.alternativeTo) return null;
 
-  // For coding use cases, check alternatives
-  if (useCase === 'coding') {
-    for (const altName of tool.alternativeTo) {
-      const alt = getToolPricing(altName);
-      if (alt) {
-        const altBasePrice = alt.tiers.find(t => t.name === 'Pro' || t.name === 'Business')?.monthlyPricePerSeat || alt.tiers[0].monthlyPricePerSeat;
-        const currentPricePerSeat = monthlySpend / seats;
-        
-        // Only suggest switch if savings are > 20%
-        const savingsPercentage = (currentPricePerSeat - altBasePrice) / currentPricePerSeat;
-        if (altBasePrice < currentPricePerSeat && savingsPercentage > 0.2) {
-          const monthlySavings = (currentPricePerSeat - altBasePrice) * seats;
+  for (const altName of tool.alternativeTo) {
+    const alt = getToolPricing(altName);
+    if (alt) {
+      const altProTier = alt.tiers.find(t => t.name === 'Pro' || t.name === 'Business');
+      const altPrice = altProTier?.monthlyPricePerSeat || alt.tiers[0]?.monthlyPricePerSeat || 0;
+      const currentPricePerSeat = monthlySpend / seats;
+      
+      if (altPrice > 0 && altPrice < currentPricePerSeat) {
+        const savingsPercentage = (currentPricePerSeat - altPrice) / currentPricePerSeat;
+        if (savingsPercentage > 0.2) {
+          const monthlySavings = (currentPricePerSeat - altPrice) * seats;
           return {
             action: 'switch',
             suggestedTool: alt.name,
-            suggestedPlan: alt.tiers.find(t => t.name === 'Pro' || t.name === 'Business')?.name || alt.tiers[0].name,
+            suggestedPlan: altProTier?.name || alt.tiers[0]?.name,
             monthlySavings,
-            reason: `${alt.name} is $${altBasePrice}/seat for your use case vs $${currentPricePerSeat.toFixed(2)}/seat on ${tool.name}. That's ${Math.round(savingsPercentage * 100)}% savings.`,
+            reason: `${alt.name} costs $${altPrice}/seat vs $${currentPricePerSeat.toFixed(2)}/seat for ${tool.name}. Save ${Math.round(savingsPercentage * 100)}% by switching.`,
           };
         }
       }
@@ -162,21 +171,11 @@ function checkAlternativeTool(
   return null;
 }
 
-// High savings → suggest Credex
-function checkCredexOpportunity(totalMonthlySavings: number): AuditResult | null {
-  if (totalMonthlySavings > 500) {
-    return {
-      action: 'consider_credex',
-      monthlySavings: totalMonthlySavings * 0.2, // Additional 20% through credits
-      reason: `You're saving $${totalMonthlySavings}/month through our recommendations. Credex credits can save you an additional 20% on your AI spend.`,
-    };
-  }
-  return null;
-}
-
 // Main audit function
 export function auditTool(context: AuditContext): AuditResult {
   const pricing = getToolPricing(context.toolName);
+  
+  // If no pricing data found
   if (!pricing) {
     return {
       action: 'stay',
@@ -186,8 +185,17 @@ export function auditTool(context: AuditContext): AuditResult {
   }
 
   const tiers = pricing.tiers;
+  
+  // Safety check for tiers
+  if (!tiers || tiers.length === 0) {
+    return {
+      action: 'stay',
+      monthlySavings: 0,
+      reason: `Pricing data for ${context.toolName} is not available.`,
+    };
+  }
 
-  // First check: Enterprise overkill (specific case)
+  // Check enterprise overkill first
   const enterpriseIssue = checkEnterpriseOverkill(context.currentPlan, context.seats, tiers);
   if (enterpriseIssue && enterpriseIssue.monthlySavings > 0) {
     return {
@@ -198,7 +206,7 @@ export function auditTool(context: AuditContext): AuditResult {
     };
   }
 
-  // Second: Check logical downgrade paths (Team -> Plus, Business -> Pro, etc.)
+  // Check specific downgrade paths
   const downgradePath = checkSpecificDowngradePath(context.currentPlan, context.seats, tiers);
   if (downgradePath && downgradePath.monthlySavings > 0) {
     return {
@@ -209,8 +217,13 @@ export function auditTool(context: AuditContext): AuditResult {
     };
   }
 
-  // Third: Check general plan overspending
-  const overspending = checkPlanOverspending(context.currentPlan, context.seats, tiers);
+  // Check general overspending
+  const overspending = checkPlanOverspending(
+    context.currentPlan, 
+    context.seats, 
+    context.monthlySpend, 
+    tiers
+  );
   if (overspending && overspending.monthlySavings > 0) {
     return {
       action: 'downgrade',
@@ -220,7 +233,7 @@ export function auditTool(context: AuditContext): AuditResult {
     };
   }
 
-  // Fourth: Check alternative tools (only for coding use cases)
+  // Check alternative tools
   const alternative = checkAlternativeTool(
     context.toolName,
     context.currentPlan,
@@ -232,10 +245,10 @@ export function auditTool(context: AuditContext): AuditResult {
     return alternative;
   }
 
-  // No savings found - optimized
+  // No savings found
   return {
     action: 'stay',
     monthlySavings: 0,
-    reason: `Your ${pricing.name} setup is optimized for your team size of ${context.seats} ${context.seats === 1 ? 'user' : 'users'} focused on ${context.useCase}. No changes recommended.`,
+    reason: `Your ${pricing.name} setup is optimized for your team size of ${context.seats} user${context.seats !== 1 ? 's' : ''} focused on ${context.useCase}.`,
   };
 }
