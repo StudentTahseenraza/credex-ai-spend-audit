@@ -1,15 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { Info } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '../../components/ui/tooltip';
 
 interface HealthMetric {
   name: string;
@@ -35,56 +29,24 @@ interface SpendHealthScoreProps {
 export function SpendHealthScore({ tools, className }: SpendHealthScoreProps) {
   const [score, setScore] = useState(0);
   const [metrics, setMetrics] = useState<HealthMetric[]>([]);
-  const controls = useAnimation();
+  const [animatedProgress, setAnimatedProgress] = useState(0);
 
-  useEffect(() => {
-    calculateHealthScore();
-  }, [tools]);
-
-  const calculateHealthScore = () => {
-    // Plan Efficiency Score
-    const planEfficiency = calculatePlanEfficiency();
-    
-    // Tool Redundancy Score
-    const toolRedundancy = calculateToolRedundancy();
-    
-    // Seat Utilization Score
-    const seatUtilization = calculateSeatUtilization();
-    
-    // Spend Efficiency Score
-    const spendEfficiency = calculateSpendEfficiency();
-    
-    // Workflow Fit Score
-    const workflowFit = calculateWorkflowFit();
-    
-    const metricsList: HealthMetric[] = [
-      { name: 'Plan Efficiency', score: planEfficiency, weight: 0.25, description: 'How well your current plans match actual usage patterns' },
-      { name: 'Tool Redundancy', score: toolRedundancy, weight: 0.15, description: 'Overlap between similar AI tools in your stack' },
-      { name: 'Seat Utilization', score: seatUtilization, weight: 0.2, description: 'Percentage of paid seats actively generating value' },
-      { name: 'Spend Efficiency', score: spendEfficiency, weight: 0.25, description: 'Cost per user compared to industry benchmarks' },
-      { name: 'Workflow Fit', score: workflowFit, weight: 0.15, description: 'Alignment between tools and your primary use case' },
-    ];
-    
-    const totalScore = metricsList.reduce((sum, m) => sum + (m.score * m.weight), 0);
-    setScore(Math.round(totalScore));
-    setMetrics(metricsList);
-    
-    // Animate score
-    controls.start({ value: totalScore, transition: { duration: 1.5, ease: "easeOut" } });
-  };
-
-  const calculatePlanEfficiency = (): number => {
+  // Calculate Plan Efficiency Score
+  const calculatePlanEfficiency = useCallback((): number => {
+    if (tools.length === 0) return 0;
     let totalEfficiency = 0;
     tools.forEach(tool => {
       const savings = tool.recommendation?.monthlySavings || 0;
       const efficiency = Math.max(0, 100 - (savings / (tool.monthlySpend || 1)) * 100);
       totalEfficiency += efficiency;
     });
-    return Math.min(100, totalEfficiency / (tools.length || 1));
-  };
+    return Math.min(100, totalEfficiency / tools.length);
+  }, [tools]);
 
-  const calculateToolRedundancy = (): number => {
-    const toolCategories = {
+  // Calculate Tool Redundancy Score
+  const calculateToolRedundancy = useCallback((): number => {
+    if (tools.length === 0) return 100;
+    const toolCategories: Record<string, string> = {
       'chatgpt': 'general',
       'claude': 'general',
       'cursor': 'coding',
@@ -92,36 +54,67 @@ export function SpendHealthScore({ tools, className }: SpendHealthScoreProps) {
       'gemini': 'general',
     };
     
-    const categories = tools.map(t => toolCategories[t.name as keyof typeof toolCategories] || 'other');
+    const categories = tools.map(t => toolCategories[t.name] || 'other');
     const duplicates = categories.filter((cat, i) => categories.indexOf(cat) !== i).length;
     return Math.max(0, 100 - (duplicates * 25));
-  };
+  }, [tools]);
 
-  const calculateSeatUtilization = (): number => {
-    // Assume 80% utilization for small teams, 90% for larger
+  // Calculate Seat Utilization Score
+  const calculateSeatUtilization = useCallback((): number => {
+    if (tools.length === 0) return 85;
     const avgSeats = tools.reduce((sum, t) => sum + t.seats, 0) / tools.length;
     if (avgSeats <= 2) return 85;
     if (avgSeats <= 5) return 90;
     return 95;
-  };
+  }, [tools]);
 
-  const calculateSpendEfficiency = (): number => {
+  // Calculate Spend Efficiency Score
+  const calculateSpendEfficiency = useCallback((): number => {
+    if (tools.length === 0) return 80;
     const avgSpendPerSeat = tools.reduce((sum, t) => sum + (t.monthlySpend / t.seats), 0) / tools.length;
     if (avgSpendPerSeat <= 15) return 95;
     if (avgSpendPerSeat <= 25) return 75;
     if (avgSpendPerSeat <= 40) return 50;
     return 30;
-  };
+  }, [tools]);
 
-  const calculateWorkflowFit = (): number => {
-    // Based on tool type vs use case (simplified)
+  // Calculate Workflow Fit Score
+  const calculateWorkflowFit = useCallback((): number => {
     return 80;
-  };
+  }, []);
+
+  // Main calculation function
+  const calculateHealthScore = useCallback(() => {
+    const planEfficiency = calculatePlanEfficiency();
+    const toolRedundancy = calculateToolRedundancy();
+    const seatUtilization = calculateSeatUtilization();
+    const spendEfficiency = calculateSpendEfficiency();
+    const workflowFit = calculateWorkflowFit();
+    
+    const metricsList: HealthMetric[] = [
+      { name: 'Plan Efficiency', score: Math.round(planEfficiency), weight: 0.25, description: 'How well your current plans match actual usage patterns' },
+      { name: 'Tool Redundancy', score: Math.round(toolRedundancy), weight: 0.15, description: 'Overlap between similar AI tools in your stack' },
+      { name: 'Seat Utilization', score: Math.round(seatUtilization), weight: 0.2, description: 'Percentage of paid seats actively generating value' },
+      { name: 'Spend Efficiency', score: Math.round(spendEfficiency), weight: 0.25, description: 'Cost per user compared to industry benchmarks' },
+      { name: 'Workflow Fit', score: Math.round(workflowFit), weight: 0.15, description: 'Alignment between tools and your primary use case' },
+    ];
+    
+    const totalScore = metricsList.reduce((sum, m) => sum + (m.score * m.weight), 0);
+    return { totalScore: Math.round(totalScore), metrics: metricsList };
+  }, [calculatePlanEfficiency, calculateToolRedundancy, calculateSeatUtilization, calculateSpendEfficiency, calculateWorkflowFit]);
+
+  // Run calculation when tools change - using useMemo instead of useEffect
+  useEffect(() => {
+    const { totalScore, metrics: newMetrics } = calculateHealthScore();
+    setScore(totalScore);
+    setMetrics(newMetrics);
+    setAnimatedProgress(totalScore);
+  }, [calculateHealthScore]);
 
   const getScoreColor = () => {
-    if (score >= 80) return 'text-green-500';
-    if (score >= 60) return 'text-yellow-500';
-    return 'text-red-500';
+    if (score >= 80) return 'text-green-500 stroke-green-500';
+    if (score >= 60) return 'text-yellow-500 stroke-yellow-500';
+    return 'text-red-500 stroke-red-500';
   };
 
   const getScoreGrade = () => {
@@ -134,7 +127,7 @@ export function SpendHealthScore({ tools, className }: SpendHealthScoreProps) {
   };
 
   const circumference = 2 * Math.PI * 45;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
+  const strokeDashoffset = circumference - (animatedProgress / 100) * circumference;
 
   return (
     <div className={cn("bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-200 p-6 shadow-sm", className)}>
@@ -143,16 +136,16 @@ export function SpendHealthScore({ tools, className }: SpendHealthScoreProps) {
           <h3 className="text-sm font-medium text-gray-500">AI Spend Health Score</h3>
           <p className="text-xs text-gray-400 mt-0.5">Overall infrastructure efficiency</p>
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              <Info className="h-4 w-4 text-gray-400" />
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p className="text-xs">Combined score based on plan efficiency, tool redundancy, seat utilization, spend efficiency, and workflow alignment</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        
+        {/* Simple Tooltip without external dependency */}
+        <div className="relative group">
+          <Info className="h-4 w-4 text-gray-400 cursor-help" />
+          <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-50">
+            <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 max-w-xs">
+              <p>Combined score based on plan efficiency, tool redundancy, seat utilization, spend efficiency, and workflow alignment</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-8">
@@ -186,8 +179,8 @@ export function SpendHealthScore({ tools, className }: SpendHealthScoreProps) {
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5 }}
               className="text-3xl font-bold"
             >
@@ -198,7 +191,7 @@ export function SpendHealthScore({ tools, className }: SpendHealthScoreProps) {
 
         {/* Score Info */}
         <div className="flex-1">
-          <div className={`text-2xl font-bold ${getScoreColor()}`}>
+          <div className={`text-2xl font-bold ${getScoreColor().split(' ')[0]}`}>
             {getScoreGrade()}
           </div>
           <p className="text-sm text-gray-600 mt-1">
@@ -223,16 +216,16 @@ export function SpendHealthScore({ tools, className }: SpendHealthScoreProps) {
           >
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">{metric.name}</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3 w-3 text-gray-400" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-xs">{metric.description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              
+              {/* Simple Tooltip for metric */}
+              <div className="relative group/inner">
+                <Info className="h-3 w-3 text-gray-400 cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/inner:block z-50">
+                  <div className="bg-gray-900 text-white text-xs rounded-lg px-2 py-1 whitespace-nowrap">
+                    {metric.description}
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-24 bg-gray-200 rounded-full h-1.5">

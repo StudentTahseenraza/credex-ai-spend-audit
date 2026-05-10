@@ -17,20 +17,28 @@ export async function GET(
   }
 
   // Return with ALL fields including monthlySpend
-  return NextResponse.json({
-    shareableId: audit.shareableId,
-    createdAt: audit.createdAt,
-    teamSize: audit.teamSize,
-    useCase: audit.useCase,
-    totalMonthlySavings: audit.totalMonthlySavings,
-    totalAnnualSavings: audit.totalAnnualSavings,
-    aiSummary: audit.aiSummary,
-    tools: audit.tools.map((t: any) => ({
+return NextResponse.json({
+  shareableId: audit.shareableId,
+  createdAt: audit.createdAt,
+  teamSize: audit.teamSize,
+  useCase: audit.useCase,
+  totalMonthlySavings: audit.totalMonthlySavings,
+  totalAnnualSavings: audit.totalAnnualSavings,
+  aiSummary: audit.aiSummary,
+  tools: audit.tools.map(
+    (t: {
+      name: string;
+      plan: string;
+      monthlySpend: number;
+      seats: number;
+      recommendation: unknown;
+    }) => ({
       name: t.name,
       plan: t.plan,
-      monthlySpend: t.monthlySpend,  // CRITICAL: Include this
+      monthlySpend: t.monthlySpend,
       seats: t.seats,
       recommendation: t.recommendation,
-    })),
-  });
+    })
+  ),
+});
 }

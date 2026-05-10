@@ -13,7 +13,7 @@ interface SavingsChartProps {
   totalRecommendedSpend: number;
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec489a'];
+// const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec489a'];
 
 export function SavingsChart({ tools, totalCurrentSpend, totalRecommendedSpend }: SavingsChartProps) {
   // Prepare data for pie chart (current vs recommended)

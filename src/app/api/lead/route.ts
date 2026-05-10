@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   const validation = leadSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json({ error: validation.error.errors }, { status: 400 });
+    return NextResponse.json({ error: validation.error.message[0] }, { status: 400 });
   }
 
   const { email, company, role, auditId } = validation.data;

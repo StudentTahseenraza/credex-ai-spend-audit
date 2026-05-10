@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Select } from '../ui/select';
 import { ToolInputRow } from './ToolInputRow';
-import { LoadingSpinner } from '../shared/LoadingSpinner';
 
 interface Tool {
   name: string;
@@ -16,7 +15,23 @@ interface Tool {
   seats: number;
 }
 
-const USE_CASES = [
+interface FormData {
+  tools: Tool[];
+  teamSize: number;
+  useCase: 'coding' | 'writing' | 'data' | 'research' | 'mixed';
+  email: string;
+  company: string;
+  role: string;
+}
+
+// Define SelectOption type to match the Select component
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+// Create mutable array for Select component
+const USE_CASES: SelectOption[] = [
   { value: 'coding', label: '💻 Coding / Development' },
   { value: 'writing', label: '✍️ Writing / Content' },
   { value: 'data', label: '📊 Data Analysis' },
@@ -24,15 +39,17 @@ const USE_CASES = [
   { value: 'mixed', label: '🔄 Mixed / General' },
 ];
 
+type UseCaseValue = 'coding' | 'writing' | 'data' | 'research' | 'mixed';
+
 export function MultiStepForm() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState<number>(1);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     tools: [{ name: 'chatgpt', plan: 'Plus', monthlySpend: 20, seats: 1 }],
     teamSize: 1,
-    useCase: 'mixed' as const,
+    useCase: 'mixed',
     email: '',
     company: '',
     role: '',
@@ -43,10 +60,10 @@ export function MultiStepForm() {
     const saved = localStorage.getItem('auditFormData');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(saved) as FormData;
         setFormData(parsed);
       } catch (e) {
-        console.error('Failed to load saved form');
+        console.error('Failed to load saved form',e);
       }
     }
   }, []);
@@ -56,20 +73,20 @@ export function MultiStepForm() {
     localStorage.setItem('auditFormData', JSON.stringify(formData));
   }, [formData]);
 
-  const addTool = () => {
+  const addTool = (): void => {
     setFormData({
       ...formData,
       tools: [...formData.tools, { name: 'chatgpt', plan: 'Plus', monthlySpend: 20, seats: 1 }],
     });
   };
 
-  const updateTool = (index: number, field: string, value: string | number) => {
+  const updateTool = (index: number, field: string, value: string | number): void => {
     const newTools = [...formData.tools];
     newTools[index] = { ...newTools[index], [field]: value };
     setFormData({ ...formData, tools: newTools });
   };
 
-  const removeTool = (index: number) => {
+  const removeTool = (index: number): void => {
     if (formData.tools.length > 1) {
       setFormData({
         ...formData,
@@ -78,48 +95,58 @@ export function MultiStepForm() {
     }
   };
 
-  const handleSubmit = async () => {
-  setIsSubmitting(true);
-  
-  // Debug: Check what we're sending
-  console.log('Submitting form data:', formData);
-  
-  try {
-    const response = await fetch('/api/audit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tools: formData.tools.map(tool => ({
-          name: tool.name,
-          plan: tool.plan,
-          monthlySpend: Number(tool.monthlySpend),  // Ensure it's a number
-          seats: Number(tool.seats)                 // Ensure it's a number
-        })),
-        teamSize: Number(formData.teamSize),
-        useCase: formData.useCase,
-        email: formData.email,
-        company: formData.company,
-        role: formData.role,
-      }),
-    });
+  const handleSubmit = async (): Promise<void> => {
+    setIsSubmitting(true);
     
-    const result = await response.json();
-    console.log('API response:', result);  // Debug: Check what API returns
+    console.log('Submitting form data:', formData);
     
-    if (!response.ok) throw new Error(result.error);
-    
-    // Store for results page
-    localStorage.setItem('lastAuditResult', JSON.stringify(result));
-    router.push(`/audit/${result.shareableId}`);
-  } catch (error) {
-    console.error('Submission error:', error);
-    alert('Something went wrong. Please try again.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    try {
+      const response = await fetch('/api/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tools: formData.tools.map(tool => ({
+            name: tool.name,
+            plan: tool.plan,
+            monthlySpend: Number(tool.monthlySpend),
+            seats: Number(tool.seats)
+          })),
+          teamSize: Number(formData.teamSize),
+          useCase: formData.useCase,
+          email: formData.email,
+          company: formData.company,
+          role: formData.role,
+        }),
+      });
+      
+      const result = await response.json();
+      console.log('API response:', result);
+      
+      if (!response.ok) throw new Error(result.error);
+      
+      localStorage.setItem('lastAuditResult', JSON.stringify(result));
+      router.push(`/audit/${result.shareableId}`);
+    } catch (error) {
+      console.error('Submission error:', error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-  const totalMonthlySpend = formData.tools.reduce((sum, t) => sum + t.monthlySpend, 0);
+  const totalMonthlySpend: number = formData.tools.reduce((sum, t) => sum + t.monthlySpend, 0);
+
+  const handleTeamSizeChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    setFormData({ ...formData, teamSize: parseInt(e.target.value) || 1 });
+  };
+
+  const handleUseCaseChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
+    setFormData({ ...formData, useCase: e.target.value as UseCaseValue });
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    setFormData({ ...formData, email: e.target.value });
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -131,8 +158,8 @@ export function MultiStepForm() {
             onClick={() => setStep(s)}
             className={`pb-3 px-4 text-sm font-medium ${
               step === s
-                ? 'border-b-2 border-primary text-primary'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             {s === 1 && '📊 Your Tools'}
@@ -164,9 +191,9 @@ export function MultiStepForm() {
               + Add another tool
             </Button>
             
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                Total monthly spend: <span className="font-bold text-foreground">${totalMonthlySpend}</span>
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                Total monthly spend: <span className="font-bold text-gray-900">${totalMonthlySpend}</span>
               </p>
             </div>
             
@@ -189,7 +216,7 @@ export function MultiStepForm() {
               <Input
                 type="number"
                 value={formData.teamSize}
-                onChange={(e) => setFormData({ ...formData, teamSize: parseInt(e.target.value) || 1 })}
+                onChange={handleTeamSizeChange}
                 min={1}
               />
             </div>
@@ -199,7 +226,7 @@ export function MultiStepForm() {
               <Select
                 value={formData.useCase}
                 options={USE_CASES}
-                onChange={(e) => setFormData({ ...formData, useCase: e.target.value as any })}
+                onChange={handleUseCaseChange}
               />
             </div>
             
@@ -225,13 +252,13 @@ export function MultiStepForm() {
             <div className="space-y-2">
               <p className="text-sm font-medium">Tools:</p>
               {formData.tools.map((tool, idx) => (
-                <div key={idx} className="text-sm p-2 bg-muted rounded">
+                <div key={idx} className="text-sm p-2 bg-gray-50 rounded">
                   {tool.name} - {tool.plan} - ${tool.monthlySpend}/mo ({tool.seats} seat{tool.seats !== 1 ? 's' : ''})
                 </div>
               ))}
             </div>
             
-            <div className="p-3 bg-primary/10 rounded-lg">
+            <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-sm">
                 <strong>Team size:</strong> {formData.teamSize}<br />
                 <strong>Primary use case:</strong> {USE_CASES.find(c => c.value === formData.useCase)?.label}
@@ -244,9 +271,9 @@ export function MultiStepForm() {
                 type="email"
                 placeholder="you@company.com"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={handleEmailChange}
               />
-              <p className="text-xs text-muted-foreground mt-1">We'll send you the full audit report</p>
+              <p className="text-xs text-gray-500 mt-1">We'll send you the full audit report</p>
             </div>
             
             <div className="flex gap-3 pt-4">
@@ -254,7 +281,7 @@ export function MultiStepForm() {
                 Back
               </Button>
               <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1">
-                {isSubmitting ? <LoadingSpinner /> : 'Run Audit →'}
+                {isSubmitting ? 'Processing...' : 'Run Audit →'}
               </Button>
             </div>
           </CardContent>

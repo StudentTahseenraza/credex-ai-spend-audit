@@ -4,14 +4,35 @@ import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from 'recharts';
 import { cn } from '../../lib/utils';
 
+interface ToolData {
+  name: string;
+  savings: number;
+  color?: string;
+}
+
+interface ChartDataItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
 interface SavingsDonutChartProps {
-  tools: Array<{
-    name: string;
-    savings: number;
-    color?: string;
-  }>;
+  tools: ToolData[];
   totalSavings: number;
   className?: string;
+}
+
+interface ActiveShapeProps {
+  cx: number;
+  cy: number;
+  innerRadius: number;
+  outerRadius: number;
+  startAngle: number;
+  endAngle: number;
+  fill: string;
+  payload: ChartDataItem;
+  percent: number;
+  value: number;
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec489a', '#06b6d4'];
@@ -19,16 +40,23 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec489a', '#06b6d4'
 export function SavingsDonutChart({ tools, totalSavings, className }: SavingsDonutChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   
-  const data = tools.filter(t => t.savings > 0).map((tool, idx) => ({
-    name: tool.name.charAt(0).toUpperCase() + tool.name.slice(1),
-    value: tool.savings,
-    color: COLORS[idx % COLORS.length],
-  }));
+  const data: ChartDataItem[] = tools
+    .filter(t => t.savings > 0)
+    .map((tool, idx) => ({
+      name: tool.name.charAt(0).toUpperCase() + tool.name.slice(1),
+      value: tool.savings,
+      color: COLORS[idx % COLORS.length],
+    }));
 
-  const onPieEnter = (_: any, index: number) => setActiveIndex(index);
-  const onPieLeave = () => setActiveIndex(null);
+  const onPieEnter = (_data: unknown, index: number) => {
+    setActiveIndex(index);
+  };
 
-  const renderActiveShape = (props: any) => {
+  const onPieLeave = () => {
+    setActiveIndex(null);
+  };
+
+  const renderActiveShape = (props: ActiveShapeProps) => {
     const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
     return (
       <g>
@@ -49,6 +77,11 @@ export function SavingsDonutChart({ tools, totalSavings, className }: SavingsDon
         </text>
       </g>
     );
+  };
+
+  // Custom tooltip formatter with proper type handling
+  const formatTooltipValue = (value: number | string): string => {
+    return `$${value}/month`;
   };
 
   if (data.length === 0) {
@@ -95,7 +128,7 @@ export function SavingsDonutChart({ tools, totalSavings, className }: SavingsDon
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number) => [`$${value}/month`, 'Savings']}
+              formatter={(value) => [formatTooltipValue(value as number), 'Savings']}
               contentStyle={{
                 backgroundColor: 'white',
                 border: '1px solid #e5e7eb',

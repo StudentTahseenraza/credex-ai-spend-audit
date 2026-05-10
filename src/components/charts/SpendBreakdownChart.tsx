@@ -1,23 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { cn } from '../../lib/utils';
 
+interface ToolData {
+  name: string;
+  currentSpend: number;
+  optimizedSpend: number;
+  savings: number;
+}
+
 interface SpendBreakdownChartProps {
-  tools: Array<{
-    name: string;
-    currentSpend: number;
-    optimizedSpend: number;
-    savings: number;
-  }>;
+  tools: ToolData[];
   isLoading?: boolean;
   className?: string;
 }
 
+interface AnimatedDataItem extends ToolData {
+  currentSpend: number;
+  optimizedSpend: number;
+}
+
 export function SpendBreakdownChart({ tools, isLoading, className }: SpendBreakdownChartProps) {
-  const [animatedData, setAnimatedData] = useState(
+  const [animatedData, setAnimatedData] = useState<AnimatedDataItem[]>(
     tools.map(t => ({ 
       name: t.name, 
       currentSpend: 0, 
@@ -68,7 +74,7 @@ export function SpendBreakdownChart({ tools, isLoading, className }: SpendBreakd
     }
   }, [isLoading, tools]);
 
-  const formatToolName = (name: string) => {
+  const formatToolName = (name: string): string => {
     const names: Record<string, string> = {
       'chatgpt': 'ChatGPT',
       'claude': 'Claude',
@@ -80,6 +86,14 @@ export function SpendBreakdownChart({ tools, isLoading, className }: SpendBreakd
       'openai': 'OpenAI',
     };
     return names[name] || name.charAt(0).toUpperCase() + name.slice(1);
+  };
+
+  // Custom tooltip formatter
+  const formatTooltipValue = (value: number | string): string => {
+    if (typeof value === 'number') {
+      return `$${value.toFixed(0)}`;
+    }
+    return `$${value}`;
   };
 
   if (tools.length === 0) {
@@ -105,7 +119,7 @@ export function SpendBreakdownChart({ tools, isLoading, className }: SpendBreakd
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
             <XAxis 
               type="number" 
-              tickFormatter={(value) => `$${value}`}
+              tickFormatter={(value: number) => `$${value}`}
               axisLine={false}
               tickLine={false}
             />
@@ -118,7 +132,7 @@ export function SpendBreakdownChart({ tools, isLoading, className }: SpendBreakd
               width={80}
             />
             <Tooltip
-              formatter={(value: number) => [`$${value.toFixed(0)}`, '']}
+              formatter={(value) => [formatTooltipValue(value as number), '']}
               cursor={{ fill: '#f9fafb' }}
               contentStyle={{
                 backgroundColor: 'white',
@@ -129,7 +143,7 @@ export function SpendBreakdownChart({ tools, isLoading, className }: SpendBreakd
             />
             <Legend 
               wrapperStyle={{ paddingTop: '20px' }}
-              formatter={(value) => <span className="text-xs text-gray-600">{value}</span>}
+              formatter={(value: string) => <span className="text-xs text-gray-600">{value}</span>}
             />
             <Bar 
               dataKey="currentSpend" 

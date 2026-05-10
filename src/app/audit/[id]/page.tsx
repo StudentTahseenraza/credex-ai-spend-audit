@@ -17,18 +17,64 @@ import { PDFExport } from '../../../components/results/PDFExport';
 import { Button } from '../../../components/ui/button';
 import { SavingsHero } from '../../../components/results/SavingsHero';
 import { ToolCard } from '../../../components/results/ToolCard';
-import { AISummary } from '../../../components/results/AISummary';
 import { LeadCaptureModal } from '../../../components/results/LeadCaptureModal';
+
+// Type definitions
+interface ToolRecommendation {
+  action: string;
+  suggestedPlan?: string;
+  suggestedTool?: string;
+  monthlySavings: number;
+  reason: string;
+}
+
+interface Tool {
+  name: string;
+  plan: string;
+  monthlySpend: number;
+  seats: number;
+  recommendation?: ToolRecommendation;
+}
+
+// Default recommendation when none exists
+const DEFAULT_RECOMMENDATION: ToolRecommendation = {
+  action: 'stay',
+  monthlySavings: 0,
+  reason: 'No optimization needed at this time.'
+};
 
 interface AuditData {
   shareableId: string;
   totalMonthlySavings: number;
   totalAnnualSavings: number;
-  tools: any[];
+  tools: Tool[];
   aiSummary: string;
   teamSize: number;
   useCase: string;
   savedToDb?: boolean;
+}
+
+interface ChartDataItem {
+  name: string;
+  currentSpend: number;
+  optimizedSpend: number;
+  savings: number;
+}
+
+interface OptimizationTool {
+  name: string;
+  plan: string;
+  monthlySpend: number;
+  seats: number;
+  recommendation: ToolRecommendation;
+}
+
+interface ExecutiveTool {
+  name: string;
+  monthlySavings: number;
+  currentPlan: string;
+  recommendedPlan?: string;
+  reason?: string;
 }
 
 export default function AuditResultPage() {
@@ -38,18 +84,15 @@ export default function AuditResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showLeadCapture, setShowLeadCapture] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const fetchAudit = useCallback(async () => {
     try {
-      // Try to fetch from API
       const response = await fetch(`/api/audit/${id}`);
-      
+
       if (response.ok) {
         const data = await response.json();
         setAudit(data);
       } else {
-        // Fallback to localStorage for recently created audits
         const stored = localStorage.getItem('lastAuditResult');
         if (stored) {
           const parsed = JSON.parse(stored);
@@ -92,7 +135,7 @@ export default function AuditResultPage() {
   if (error || !audit) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center max-w-md mx-auto p-8"
@@ -102,8 +145,8 @@ export default function AuditResultPage() {
           </div>
           <h1 className="text-2xl font-bold mb-2 text-gray-900">Audit Not Found</h1>
           <p className="text-gray-600 mb-6">{error || "The audit you're looking for doesn't exist or has expired."}</p>
-          <button 
-            onClick={() => window.location.href = '/'} 
+          <button
+            onClick={() => window.location.href = '/'}
             className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
           >
             Start New Audit
@@ -113,49 +156,68 @@ export default function AuditResultPage() {
     );
   }
 
-  // Prepare data for charts
-  const chartData = audit.tools.map(tool => ({
-    name: tool.name,
+  // Prepare data for charts with safe fallbacks
+  const chartData: ChartDataItem[] = audit.tools.map((tool) => ({
+    name: tool.name || 'Unknown',
     currentSpend: tool.monthlySpend || 0,
     optimizedSpend: (tool.monthlySpend || 0) - (tool.recommendation?.monthlySavings || 0),
     savings: tool.recommendation?.monthlySavings || 0,
   }));
 
+  // Prepare tools for optimization opportunities (with guaranteed recommendation)
+  const optimizationTools: OptimizationTool[] = audit.tools.map((tool) => ({
+    name: tool.name,
+    plan: tool.plan,
+    monthlySpend: tool.monthlySpend,
+    seats: tool.seats,
+    recommendation: tool.recommendation || DEFAULT_RECOMMENDATION,
+  }));
+
+  // Prepare tools for executive summary
+  const executiveTools: ExecutiveTool[] = audit.tools.map((tool) => ({
+    name: tool.name,
+    monthlySavings: tool.recommendation?.monthlySavings || 0,
+    currentPlan: tool.plan,
+    recommendedPlan: tool.recommendation?.suggestedPlan || tool.recommendation?.suggestedTool,
+    reason: tool.recommendation?.reason,
+  }));
+
+  // Calculate health score
+  const calculateHealthScore = (): number => {
+    const totalSpend = audit.tools.reduce((sum, t) => sum + (t.monthlySpend || 0), 0);
+    if (totalSpend === 0) return 75;
+    const savingsPercent = (audit.totalMonthlySavings / totalSpend) * 100;
+    return Math.max(0, Math.min(100, 100 - savingsPercent));
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        
-        {/* Premium Dashboard Layout */}
         <div className="space-y-8">
-          
           {/* Hero Section with Savings */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <SavingsHero 
+            <SavingsHero
               monthlySavings={audit.totalMonthlySavings}
               annualSavings={audit.totalAnnualSavings}
             />
           </motion.div>
 
-          {/* Main Dashboard Grid - 3 columns on desktop */}
+          {/* Main Dashboard Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Left Column - 2/3 width on desktop */}
+            {/* Left Column */}
             <div className="lg:col-span-2 space-y-6">
-              
-              {/* AI Spend Health Score */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
               >
-                <SpendHealthScore tools={audit.tools} />
+                <SpendHealthScore tools={optimizationTools} />
               </motion.div>
 
-              {/* Spend Breakdown Chart */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -164,16 +226,14 @@ export default function AuditResultPage() {
                 <SpendBreakdownChart tools={chartData} />
               </motion.div>
 
-              {/* Optimization Opportunities */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
-                <OptimizationOpportunities tools={audit.tools} />
+                <OptimizationOpportunities tools={optimizationTools} />
               </motion.div>
 
-              {/* Per-Tool Analysis Section */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -188,37 +248,34 @@ export default function AuditResultPage() {
                       name={tool.name}
                       currentPlan={tool.plan}
                       currentSpend={tool.monthlySpend || 0}
-                      recommendation={tool.recommendation}
+                      recommendation={tool.recommendation || DEFAULT_RECOMMENDATION}
                     />
                   ))}
                 </div>
               </motion.div>
             </div>
 
-            {/* Right Column - 1/3 width on desktop */}
+            {/* Right Column */}
             <div className="space-y-6">
-              
-              {/* Benchmark Insights */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.15 }}
               >
-                <BenchmarkInsights 
+                <BenchmarkInsights
                   teamSize={audit.teamSize}
                   totalMonthlySpend={totalCurrentSpend}
                   useCase={audit.useCase}
                 />
               </motion.div>
 
-              {/* Savings Distribution Chart */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.25 }}
               >
-                <SavingsDonutChart 
-                  tools={audit.tools.map(t => ({
+                <SavingsDonutChart
+                  tools={audit.tools.map((t) => ({
                     name: t.name,
                     savings: t.recommendation?.monthlySavings || 0,
                   }))}
@@ -226,31 +283,23 @@ export default function AuditResultPage() {
                 />
               </motion.div>
 
-              {/* Executive AI Summary */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.35 }}
               >
-                <ExecutiveSummary 
+                <ExecutiveSummary
                   summary={audit.aiSummary}
-                  tools={audit.tools.map(t => ({
-                    name: t.name,
-                    monthlySavings: t.recommendation?.monthlySavings || 0,
-                  }))}
+                  tools={executiveTools}
                   totalSavings={audit.totalMonthlySavings}
-                  healthScore={(() => {
-                    // Calculate health score based on savings percentage
-                    const totalSpend = audit.tools.reduce((sum, t) => sum + (t.monthlySpend || 0), 0);
-                    const savingsPercent = totalSpend > 0 ? (audit.totalMonthlySavings / totalSpend) * 100 : 0;
-                    return Math.max(0, Math.min(100, 100 - savingsPercent));
-                  })()}
+                  healthScore={calculateHealthScore()}
+                  teamSize={audit.teamSize}
                 />
               </motion.div>
             </div>
           </div>
 
-          {/* Action Buttons Section */}
+          {/* Action Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -268,7 +317,7 @@ export default function AuditResultPage() {
             </Button>
           </motion.div>
 
-          {/* High Savings Alert Banner */}
+          {/* High Savings Alert */}
           {audit.totalMonthlySavings > 500 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -283,8 +332,8 @@ export default function AuditResultPage() {
                 <div>
                   <h3 className="font-semibold text-purple-900 mb-1">High Savings Detected!</h3>
                   <p className="text-sm text-purple-700">
-                    You're saving over $500/month with our recommendations. 
-                    A Credex specialist will reach out within 24 hours to help you capture 
+                    You're saving over $500/month with our recommendations.
+                    A Credex specialist will reach out within 24 hours to help you capture
                     even more through discounted AI credits (additional 20-30% savings).
                   </p>
                 </div>
@@ -311,7 +360,7 @@ export default function AuditResultPage() {
             >
               Close
             </button>
-            <LeadCaptureModal 
+            <LeadCaptureModal
               auditId={audit.shareableId}
               savingsAmount={audit.totalMonthlySavings}
               onClose={() => setShowLeadCapture(false)}

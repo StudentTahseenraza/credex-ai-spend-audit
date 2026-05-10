@@ -121,8 +121,8 @@ export async function POST(request: NextRequest) {
         await audit.save();
         savedToDb = true;
         console.log('✅ Audit saved to database:', shareableId);
-      } catch (dbError) {
-        console.error('Failed to save to database:', dbError);
+      } catch (dbError: unknown) {
+          console.error('Failed to save to database:', dbError);
         // Continue anyway - we can still return results
       }
     }
