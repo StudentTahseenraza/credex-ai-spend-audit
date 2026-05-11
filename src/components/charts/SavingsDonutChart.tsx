@@ -38,7 +38,7 @@ interface ActiveShapeProps {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec489a', '#06b6d4'];
 
 export function SavingsDonutChart({ tools, totalSavings, className }: SavingsDonutChartProps) {
-  const [_, setActiveIndex] = useState<number | null>(null);
+const [, setActiveIndex] = useState<number | null>(null);
   
   const data: ChartDataItem[] = tools
     .filter(t => t.savings > 0)

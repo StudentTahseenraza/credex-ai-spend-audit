@@ -61,7 +61,7 @@ export function ImplementationPlan({ isOpen, onClose, tools, totalSavings, teamS
     });
 
     // Add steps for each tool with savings
-    tools.forEach((tool, idx) => {
+    tools.forEach((tool) => {
       if (tool.monthlySavings > 0) {
         steps.push({
           id: `tool-${tool.name}`,

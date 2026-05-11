@@ -29,9 +29,9 @@ export async function sendAuditConfirmationEmail(data: EmailData): Promise<{ suc
 
   try {
     const shareableUrl = `${APP_URL}/audit/${data.shareableId}`;
-    const savingsText = data.totalSavings > 0 
-      ? `Save $${data.totalSavings}/month ($${data.totalAnnualSavings}/year)`
-      : `Your AI stack is optimized`;
+    // const savingsText = data.totalSavings > 0 
+    //   ? `Save $${data.totalSavings}/month ($${data.totalAnnualSavings}/year)`
+    //   : `Your AI stack is optimized`;
 
     const emailHtml = `
       <!DOCTYPE html>

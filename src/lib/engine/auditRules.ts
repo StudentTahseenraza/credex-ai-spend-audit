@@ -1,4 +1,4 @@
-import { PRICING, getToolPricing, PricingTier } from './pricing';
+import { getToolPricing, PricingTier } from './pricing';
 
 export interface AuditContext {
   toolName: string;

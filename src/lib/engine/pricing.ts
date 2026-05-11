@@ -1,5 +1,4 @@
-// All prices in USD per month
-// Source: PRICING_DATA.md (verified 2026-05-08)
+
 
 export interface PricingTier {
   name: string;

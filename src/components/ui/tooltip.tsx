@@ -45,7 +45,7 @@ export function Tooltip({ children, content, side = 'top' }: TooltipProps) {
 // Provider components that don't require content
 export const TooltipProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 
-export const TooltipTrigger = ({ children, asChild, ...props }: { children: React.ReactNode; asChild?: boolean }) => {
+export const TooltipTrigger = ({ children, ...props }: { children: React.ReactNode; asChild?: boolean }) => {
   return <div {...props}>{children}</div>;
 };
 
