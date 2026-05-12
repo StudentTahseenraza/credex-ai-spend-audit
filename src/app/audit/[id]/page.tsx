@@ -1,9 +1,9 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Share2, Mail } from 'lucide-react';
+import { Share2, Mail, ArrowLeft, Home } from 'lucide-react';
 
 // Premium Components
 import { SpendHealthScore } from '../../../components/dashboard/SpendHealthScore';
@@ -35,13 +35,6 @@ interface Tool {
   seats: number;
   recommendation?: ToolRecommendation;
 }
-
-// Default recommendation when none exists
-const DEFAULT_RECOMMENDATION: ToolRecommendation = {
-  action: 'stay',
-  monthlySavings: 0,
-  reason: 'No optimization needed at this time.'
-};
 
 interface AuditData {
   shareableId: string;
@@ -77,8 +70,16 @@ interface ExecutiveTool {
   reason?: string;
 }
 
+// Default recommendation when none exists
+const DEFAULT_RECOMMENDATION: ToolRecommendation = {
+  action: 'stay',
+  monthlySavings: 0,
+  reason: 'No optimization needed at this time.'
+};
+
 export default function AuditResultPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const [audit, setAudit] = useState<AuditData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,17 +115,21 @@ export default function AuditResultPage() {
   }, [id]);
 
   useEffect(() => {
-    const loadAudit = async () => {
-      await fetchAudit();
-    };
+  const loadAudit = async () => {
+    await fetchAudit();
+  };
 
-    void loadAudit();
-  }, [fetchAudit]);
+  void loadAudit();
+}, [fetchAudit]);
 
   const handleShare = async () => {
     const url = window.location.href;
     await navigator.clipboard.writeText(url);
     alert('Link copied! Share your audit results.');
+  };
+
+  const handleBackToHome = () => {
+    router.push('/');
   };
 
   // Calculate total current spend
@@ -138,7 +143,7 @@ export default function AuditResultPage() {
   // Error state
   if (error || !audit) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -150,8 +155,8 @@ export default function AuditResultPage() {
           <h1 className="text-2xl font-bold mb-2 text-gray-900">Audit Not Found</h1>
           <p className="text-gray-600 mb-6">{error || "The audit you're looking for doesn't exist or has expired."}</p>
           <button
-            onClick={() => window.location.href = '/'}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+            onClick={handleBackToHome}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 font-medium"
           >
             Start New Audit
           </button>
@@ -168,7 +173,7 @@ export default function AuditResultPage() {
     savings: tool.recommendation?.monthlySavings || 0,
   }));
 
-  // Prepare tools for optimization opportunities (with guaranteed recommendation)
+  // Prepare tools for optimization opportunities
   const optimizationTools: OptimizationTool[] = audit.tools.map((tool) => ({
     name: tool.name,
     plan: tool.plan,
@@ -197,6 +202,23 @@ export default function AuditResultPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        
+        {/* Navigation Bar */}
+        <div className="flex justify-between items-center mb-8">
+          <button
+            onClick={handleBackToHome}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors duration-300 group"
+          >
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Back to Home</span>
+          </button>
+          
+          {/* Optional: Add logo/brand */}
+          <div className="text-sm text-gray-400">
+            AI Spend Audit
+          </div>
+        </div>
+
         <div className="space-y-8">
           {/* Hero Section with Savings */}
           <motion.div
@@ -303,13 +325,17 @@ export default function AuditResultPage() {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
             className="flex flex-col sm:flex-row gap-3 pt-4"
           >
+            <Button variant="outline" onClick={handleBackToHome} className="flex-1">
+              <Home className="h-4 w-4 mr-2" />
+              New Audit
+            </Button>
             <PDFExport audit={audit} />
             <Button variant="outline" onClick={handleShare} className="flex-1">
               <Share2 className="h-4 w-4 mr-2" />
